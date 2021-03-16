@@ -18,13 +18,12 @@ names(andmed_eas) <- c("sk_nr", "eas_skeem", "nimi", "registrikood", "eas_kp", "
 andmed_eas <- andmed_eas %>% select(registrikood, eas_skeem, eas_summa, eas_kp)
 save(andmed_eas, file="Andmed/R_andmed/andmed_eas.RData")
 
-#HTM
-
 #Kredex
-andmed_kredex <- read.csv2("Andmed/Meetmed/Kredex/Kriisiabi_käenduslepingud_13082020.csv") %>% 
+#eelmised andmed "Kriisiabi_käenduslepingud_13082020.csv" ja "Kriisiabi_laenulepingud_13082020.csv"
+andmed_kredex <- read.csv2("Andmed/Meetmed/Kredex/Kriisiabi_käenduslepingud_31012021.csv") %>% 
   select(registrikood = Toetuse.saaja.registrikood, kredex_meede = Meetme.nimetus, kredex_teenus = Teenuse.nimetus, 
          kredex_laenusumma = Laenusumma, kredex_kaendussumma = Käenduse.summa, kredex_kp = Lepingu.sõlmimise.kuupäev)
-andmed_kredex2 <- read.csv2("Andmed/Meetmed/Kredex/Kriisiabi_laenulepingud_13082020.csv") %>% 
+andmed_kredex2 <- read.csv2("Andmed/Meetmed/Kredex/Kriisiabi_laenulepingud_31012021.csv") %>% 
   select(registrikood = Toetuse.saaja.registrikood, kredex_meede = Meetme.nimetus, kredex_teenus = Teenuse.nimetus, 
          kredex_laenusumma = Laenusumma, kredex_kp = Lepingu.sõlmimise.kuupäev)
 andmed_kredex <- andmed_kredex %>% 
@@ -35,9 +34,10 @@ andmed_kredex <- andmed_kredex %>%
 save(andmed_kredex, file="Andmed/R_andmed/andmed_kredex.RData")
 
 #MES
-andmed_mes <- read_excel("Andmed/Meetmed/MES/Info kodulehele 27.11.2020.xls", sheet = "COVID-19 laen", range = "B3:C255") %>% 
-  select(nimi = `Laenu saaja`, mes_laenusumma = laenusumma)
-andmed_mes2 <- read_excel("Andmed/Meetmed/MES/Info kodulehele 27.11.2020.xls", sheet = "COVID-19 laen", range = "G3:H76") %>% 
+#eelmised andmed "Info kodulehele 27.11.2020.xls, range = "B3:C255" ja "G3:H76"
+andmed_mes <- read_excel("Andmed/Meetmed/MES/Info COVID kohta seisuga 28.02.2021.xls", sheet = "COVID-19 laen", range = "B2:D302") %>% 
+  select(nimi = `Laenu saaja`, registrikood = `reg nr`, mes_laenusumma = laenusumma)
+andmed_mes2 <- read_excel("Andmed/Meetmed/MES/Info COVID kohta seisuga 28.02.2021.xls", sheet = "COVID-19 laen", range = "H3:I137") %>% 
   select(nimi = `Käenduse saaja`, mes_kaendussumma= `käenduse summa`)
 andmed_mes <- andmed_mes %>% 
   plyr::rbind.fill(andmed_mes2) 
