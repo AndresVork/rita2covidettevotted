@@ -13,18 +13,35 @@ load("./Andmed/R_andmed/andmed_emta.RData") #MES andmete registrikoodi jaoks
 load("./Andmed/R_andmed/andmed_tkkum.RData")
 load("./Andmed/R_andmed/andmed_kredex.RData")
 
-#Lisame MES andmetele registrikoodi nime kaudu
+#Lisame MES andmetele registrikoodi nime kaudu kui registrikood on puudu
 abi <- andmed_emta %>% select(nimi, registrikood) %>% unique()
 
 abi <- abi %>% mutate(nimi = trimws(gsub(",", "", nimi)))
-andmed_mes <- andmed_mes %>% mutate(nimi = trimws(gsub("\\((.*?)\\)", "",toupper(nimi)))) %>% left_join(abi, by ="nimi")
+andmed_mes2 <- andmed_mes %>% 
+  filter(is.na(registrikood)) %>% 
+  select(-registrikood) %>% 
+  mutate(nimi = trimws(gsub("\\((.*?)\\)", "",toupper(nimi)))) %>% 
+  left_join(abi, by ="nimi") %>% 
+  select(names(andmed_mes))
 
-abi <- abi %>% mutate(nimi = trimws(gsub("&", "JA",gsub("^AKTSIASELTS|^SIHTASUTUS|^INSENERI- JA TEHNIKAÜHISTU|^AS|^OÜ|OÜ$|AS$|FIE$|^OSAÜHING|AKTSIASELTS$|TÜ$|SA$|TÜH$", "", nimi))))
-andmed_mes1 <- andmed_mes %>% filter(is.na(registrikood)) %>% select(nimi, mes_laenusumma, mes_kaendussumma) %>% 
-  mutate(nimi = trimws(gsub("^TÄISÜHING|INSENERI- JA TEHNIKAÜHISTU$|^AS|^OÜ|OÜ$|AS$|FIE$|^OSAÜHING|AKTSIASELTS$|TÜ$|SA$", "", nimi))) %>% left_join(abi, by = "nimi")
+abi <- abi %>% 
+  mutate(nimi = trimws(gsub("&", "JA",gsub("^AKTSIASELTS|^SIHTASUTUS|^INSENERI- JA TEHNIKAÜHISTU|^AS|^OÜ|OÜ$|AS$|FIE$|^OSAÜHING|AKTSIASELTS$|TÜ$|SA$|TÜH$|OSAÜHING$", "", nimi))))
+andmed_mes1 <- andmed_mes2 %>% 
+  filter(is.na(registrikood)) %>% 
+  select(nimi, mes_laenusumma, mes_kaendussumma) %>% 
+  mutate(nimi = trimws(gsub("^AKTSIASELTS|^TÄISÜHING|INSENERI- JA TEHNIKAÜHISTU$|^AS|^OÜ|OÜ$|AS$|FIE$|^OSAÜHING|AKTSIASELTS$|TÜ$|SA$|OSAÜHING$", "", nimi))) %>% 
+  left_join(abi, by = "nimi") %>% 
+  select(names(andmed_mes))
+#Kui mõni ettevõtte jääb ikka registrikoodiga, siis võib uurida, kas mõne sõna lisamine gsubi aitaks
+#Kui sõna on alguses, siis ^sõna; kui sõna on lõpus siis sõna$
 
-andmed_mes <- andmed_mes %>% filter(!is.na(registrikood)) %>% rbind(andmed_mes1) %>% 
-  select(registrikood) %>% filter(!is.na(registrikood)) %>% unique()
+andmed_mes <- andmed_mes %>% 
+  filter(!is.na(registrikood)) %>% 
+  rbind(andmed_mes1) %>% 
+  rbind(andmed_mes2) %>% 
+  select(registrikood) %>% 
+  filter(!is.na(registrikood)) %>% 
+  unique()
   
 
 #Teeme igale meetmele binaarse tunnuse ja lisame EMTA andmetele
