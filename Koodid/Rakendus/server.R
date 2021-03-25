@@ -176,20 +176,18 @@ function(input, output, session) {
   })
   
   output$kaivejoonis <- renderPlot({
-    ggplot(meetmeandmed(), aes(aeg, kaive, group = meede, color = factor(meede))) + 
-      geom_line() +
-      scale_color_discrete(name = "", labels = c("Ei saanud meedet", "Sai meedet")) +
-      labs(title = "Grupi keskmine käive kvartalis", x = "", y = "€") +
-      theme_bw()
-      
+    aste <- kymne_aste(meetmeandmed()$kaive)
+    line_graph(data = meetmeandmed(), x = aeg, y = kaive/aste$div, group = meede, 
+               color = factor(meede),
+               group_labels = c("Ei saanud meedet", "Sai meedet"), 
+               title = "Grupi keskmine käive kvartalis", ylab = paste("€", aste$label, sep = " "))
   })
   
   output$tootajajoonis <- renderPlot({
-    ggplot(meetmeandmed(), aes(aeg, tootajad, group = meede, color = factor(meede))) + 
-      geom_line() +
-      scale_color_discrete(name = "", labels = c("Ei saanud meedet", "Sai meedet")) +
-      labs(title = "Grupi keskmine töötajate arv kvartalis", x = "", y = "") +
-      theme_bw()
+    line_graph(data = meetmeandmed(), x = aeg, y = tootajad, group = meede, 
+               color = factor(meede),
+               group_labels = c("Ei saanud meedet", "Sai meedet"), 
+               title = "Grupi keskmine töötajate arv kvartalis", ylab = "")
   })
 
 # Meetme mõju -------------------------------------------------------------
@@ -291,20 +289,18 @@ function(input, output, session) {
   })
   
   output$kaivejoonis2 <- renderPlot({
-    ggplot(meetmemoju_andmed()[[1]], aes(aeg, kaive, group = grupp, color = factor(grupp))) + 
-      geom_line() +
-      scale_color_discrete(name = "") +
-      labs(title = "Grupi keskmine käive kvartalis", x = "", y = "€") +
-      theme_bw()
-    
+    aste <- kymne_aste(meetmemoju_andmed()[[1]]$kaive)
+    line_graph(data = meetmemoju_andmed()[[1]], x = aeg, y = kaive/aste$div, 
+               group = grupp, color = factor(grupp),
+               group_labels = levels(meetmemoju_andmed()[[1]]$grupp), 
+               title = "Grupi keskmine käive kvartalis", ylab = paste("€", aste$label, sep = " "))
   })
   
   output$tootajajoonis2 <- renderPlot({
-    ggplot(meetmemoju_andmed()[[1]], aes(aeg, tootajad, group = grupp, color = factor(grupp))) + 
-      geom_line() +
-      scale_color_discrete(name = "") +
-      labs(title = "Grupi keskmine töötajate arv kvartalis", x = "", y = "") +
-      theme_bw()
+    line_graph(data = meetmemoju_andmed()[[1]], x = aeg, y = tootajad, group = grupp, 
+               color = factor(grupp),
+               group_labels = levels(meetmemoju_andmed()[[1]]$grupp), 
+               title = "Grupi keskmine töötajate arv kvartalis", ylab = "")
   })
   
   output$nimekiri <- renderUI({
@@ -548,20 +544,18 @@ function(input, output, session) {
   })
 
   output$kaivejoonis3 <- renderPlot({
-    ggplot(jooniste_andmed(), aes(aeg, kaive, color = grupp, group = grupp)) + 
-      geom_line() +
-      scale_color_discrete(name = "") +
-      labs(title = "Ettevõtte käive kvartalis", x = "", y = "€") +
-      theme_bw()
-    
+    aste <- kymne_aste(jooniste_andmed()$kaive)
+    line_graph(data = jooniste_andmed(), x = aeg, y = kaive/aste$div, group = grupp, 
+               color = factor(grupp),
+               group_labels = unique(jooniste_andmed()$grupp),  
+               title = "Ettevõtte käive kvartalis", ylab = paste("€", aste$label, sep = " "))
   })
   
   output$tootajajoonis3 <- renderPlot({
-    ggplot(jooniste_andmed(), aes(aeg, tootajad, color = grupp, group = grupp)) + 
-      geom_line() +
-      scale_color_discrete(name = "") +
-      labs(title = "Ettevõtte töötajate arv kvartalis", x = "", y = "") +
-      theme_bw()
+    line_graph(data = jooniste_andmed(), x = aeg, y = tootajad, group = grupp, 
+               color = factor(grupp),
+               group_labels = unique(jooniste_andmed()$grupp), 
+               title = "Ettevõtte töötajate arv kvartalis", ylab = "")
   })
   
   output$nimekiri2 <- renderUI({

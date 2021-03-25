@@ -2,13 +2,13 @@
 
 #paketid
 library(shiny)
-library(dplyr)
 library(DT)
 library(shinyWidgets)
 library(zoo)
 library(tidyverse)
 library(shinydashboard)
 library(shinycssloaders)
+library(showtext)
 
 #andmed
 load(file = "../../Andmed/R_andmed/df_koik.RData")
@@ -17,6 +17,10 @@ load(file = "../../Andmed/R_andmed/df_meetmed.RData")
 #plusmiinus sümbol
 plusmiinus <- "\u00b1"
 Encoding(plusmiinus) <- "UTF-8"
+
+#Roboto Condensed font jooniste jaoks
+font_add_google("Roboto Condensed", "Roboto Condensed")
+showtext_auto()
 
 #tunnused
 df_koik <- df_koik %>% 
@@ -53,3 +57,78 @@ tunnusedjarjestamiseks <- c("rmaksud", "toomaksud", "kaive", "tootajad",
                             "kaive_olulisus_maakond", "tootajad_olulisus_maakond", "rmaksud_olulisus_maakond", "toomaksud_olulisus_maakond", 
                             "kaive_olulisus_riik", "tootajad_olulisus_riik", "rmaksud_olulisus_riik", "toomaksud_olulisus_riik", 
                             "haru_myyjaid", "haru_ostjaid")
+
+#jooniste theme
+theme_ev <- function(){ 
+  font <- "Roboto Condensed"   #font family
+  
+  theme_light() %+replace%    #muudame vajalikud parameetrid
+    
+    theme(
+      #text elements
+      plot.title = element_text(             #title
+        family = font,
+        size = 18, 
+        face = 'bold',
+        colour = '#53565A',
+        vjust = 2,              #kergelt tõstetud
+        hjust = 0),             #left align
+      
+      axis.title = element_text(             #axis titles
+        family = font,            
+        size = 12,
+        colour = "#53565A"),              
+      
+      axis.text = element_text(              #axis text
+        family = font,            
+        size = 11,
+        colour = "#75787B"),
+      
+      legend.text = element_text(              #legend text
+        family = font,            
+        size = 11,
+        colour = "#53565A")
+    )
+}
+
+#y telje muutmine 
+kymne_aste <- function(tunnus){
+max_vaartus <- max(abs(tunnus[abs(tunnus) < Inf]), na.rm = TRUE)
+if (max_vaartus > 1e+09) {
+  div <- 1e+09
+  label <- "(miljardites)"
+  label2 <- "mld"
+} else { 
+  if (max_vaartus > 1e+06) {
+    div <- 1e+06
+    label <- "(miljonites)"
+    label2 <- "mln"
+  } else {
+    if (max_vaartus > 1000) {
+      div <- 1000
+      label <- "(tuhandetes)"
+      label2 <- "tuhat"
+    } else {
+      div <- 1
+      label <- ""
+      label2 <- ""
+    }
+  }}
+return(list(div = div, label = label, label2 = label2)) 
+}
+
+#jooniste ülesehitus
+line_graph <- function(data, ..., group_labels = NULL, title = NULL, 
+                       xlab = "", ylab = NULL) {
+  validate(need(nrow(data) > 0, "Pole andmeid"))
+  if (length(group_labels) == 1) {
+    varv <- "#0072CE"
+  } else {
+    varv <- c("#97999B", "#0072CE")
+  }
+  ggplot(data, aes(...)) + 
+    geom_line(size = 1.2) +
+    scale_colour_manual(name = "", values = varv, labels = group_labels) +
+    labs(title = title, x = xlab, y = ylab) +
+    theme_ev()
+}
