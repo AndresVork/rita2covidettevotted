@@ -1,12 +1,27 @@
 #EMTA andmete sisselugemine
 
+#Sisendid:
+# Kõik kvartaalsed EMTA kodulehelt alla laaditud andmed kas Excelis või (vahel harva) csv kujul.
+
+#Vajalikud tegevused uute andmete lisandumisel
+#1) lisada lõppu blokk iga uue kvartali kohta 
+#2) kontrollida üle, et sisendandmete nimed vastavad koodis toodule
+#3) Jooksutada kogu kood läbi
+
+#Esimesed EMTA andmed loetakse sisse andmetabelisse "andmed", 
+#järgmised kõik üle kirjutatavasse andmetabelisse "lisaandmed" ja lisatakse eelmisele tabelile
+#
+
+#Väljundid:
+#Koodi jooksutamise tulemusena salvestatakse andmetabel "andmed_emta" faili "Andmed/R_andmed/andmed_emta.RData"
+
 #paketid
 library(tidyverse)
 library(readxl)
 library(stringr)
 
 #EMTA andmed
-#failid <- list.files("Andmed/EMTA")
+#(failid <- list.files("Andmed/EMTA"))
 
 #2017
 andmed <- read_excel("Andmed/EMTA/tasutud_maksud_2017_i_kv.xlsx") %>% 
@@ -266,8 +281,59 @@ str(lisa_andmed)
 andmed <- andmed %>% 
   rbind(lisa_andmed)
 
+#2021
+lisa_andmed <- read_excel("Andmed/EMTA/tasutud_maksud_2021_i_kvartal.xlsx") %>% 
+  mutate(aasta = 2021, 
+         kvartal = 1)
+names(lisa_andmed) <- tolower(names(lisa_andmed))
+names(lisa_andmed)
+lisa_andmed <- lisa_andmed %>% 
+  rename(KMK = `registreeritud käibemaksukohustuslaste registrisse`,
+         EMTAK = `emtak tegevusvaldkond, mis on emtaki struktuuris tähistatud tähtkoodiga`,
+         rmaksud = `riiklikud maksud`,
+         toomaksud = `tööjõumaksud ja maksed`,
+         tootajad = tootajaid
+  )  %>% select(names(andmed))
+str(lisa_andmed)
+andmed <- andmed %>% 
+  rbind(lisa_andmed)
+
+lisa_andmed <- read_excel("Andmed/EMTA/tasutud_maksud_2021_ii_kvartal.xlsx") %>% 
+  mutate(aasta = 2021, 
+         kvartal = 2)
+names(lisa_andmed) <- tolower(names(lisa_andmed))
+names(lisa_andmed)
+lisa_andmed <- lisa_andmed %>% 
+  rename(KMK = `registreeritud käibemaksukohustuslaste registrisse`,
+         EMTAK = `emtak tegevusvaldkond, mis on emtaki struktuuris tähistatud tähtkoodiga`,
+         rmaksud = `riiklikud maksud`,
+         toomaksud = `tööjõumaksud ja maksed`,
+         tootajad = tootajaid
+  )  %>% select(names(andmed))
+str(lisa_andmed)
+andmed <- andmed %>% 
+  rbind(lisa_andmed)
+
+lisa_andmed <- read_excel("Andmed/EMTA/tasutud_maksud_2021_iii_kvartal.xlsx") %>% 
+  mutate(aasta = 2021, 
+         kvartal = 3)
+names(lisa_andmed) <- tolower(names(lisa_andmed))
+names(lisa_andmed)
+lisa_andmed <- lisa_andmed %>% 
+  rename(KMK = `registreeritud käibemaksukohustuslaste registrisse`,
+         EMTAK = `emtak tegevusvaldkond, mis on emtaki struktuuris tähistatud tähtkoodiga`,
+         rmaksud = `riiklikud maksud`,
+         toomaksud = `tööjõumaksud ja maksed`,
+         tootajad = tootajaid
+  )  %>% select(names(andmed))
+str(lisa_andmed)
+andmed <- andmed %>% 
+  rbind(lisa_andmed)
+
+
 #Õ täht on varasemates Exceli andmefailides teistsuguse kujuga. Kasutan gsub ja pattern kombinatsiooni.
 #Vaata: table(andmed$EMTAK, andmed$aasta)
+#Siin tehakse uus nimetus "emtak_emta"
 andmed_emta <- andmed %>% 
   mutate(emtak_emta =  gsub(pattern = ".HUGA", replacement = "ÕHUGA", EMTAK),
          emtak_emta =  gsub(pattern = "S.IDUKITE", replacement = "SÕIDUKITE", emtak_emta),

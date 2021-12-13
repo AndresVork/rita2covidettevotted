@@ -44,7 +44,8 @@ andmed_mes <- andmed_mes %>%
 save(andmed_mes, file="Andmed/R_andmed/andmed_mes.RData")
 
 
-#TK
+#TK 2020
+#Töötasu hüvitist maksti esimest korda 2020. aasta märtsi, aprilli ja mai eest
 andmed_tk <- read_excel("Andmed/Meetmed/TK/asutuste_nimekiri_06.09.2020.xlsx", sheet = "Asutuste kokkuvõte_märts", skip = 1)
 andmed_tk <- read_excel("Andmed/Meetmed/TK/asutuste_nimekiri_06.09.2020.xlsx", sheet = "Asutuste kokkuvõte_aprill", skip = 1) %>% 
   rbind(andmed_tk)
@@ -65,3 +66,23 @@ andmed_tkkum <- andmed_tkkum %>%
          tkkum_saajate_arv3 = `Sh hüvitise saajad, kes saanud hüvitist kolme kuu eest`,
          tkkum_brutosumma = `Hüvitiste brutosumma EUR`, tkkum_kogukulu = `Hüvitiste kogukulu EUR`)
 save(andmed_tkkum, file="Andmed/R_andmed/andmed_tkkum.RData")
+
+#TK 2021
+#Töötasu hüvitist maksti 2021. aasta märtsi, aprilli ja mai eest
+#Eelmised versioonid "tootasu_huvitis_2021_asutuste_nimekiri_25.04.2021.xlsx"
+andmed_tk21 <- read_excel("Andmed/Meetmed/TK/tootasu_huvitis_2021_asutuste_nimekiri_06.12.2021.xlsx", 
+                          sheet = "Asutuste kokkuvõte_koond2021", skip = 1) %>% 
+  select(registrikood = `Asutuse registrikood`, tk21_saajate_arv = `Hüvitise saajate arv`,
+         tk21_brutosumma = `Hüvitiste brutosumma EUR`, tk21_kogukulu = `Hüvitiste kogukulu EUR`)
+save(andmed_tk21, file="Andmed/R_andmed/andmed_tk21.RData")
+
+#TK 2021 Harju ja Ida-Viru 
+#eelmised andmefaili versioonid: asutuste_nimekiri_07_04_2021.xlsx
+#Harjumaa ja Ida-Virumaa tööandjatele, kelle tegevus on olnud erakorraliste asjaolude tõttu perioodil 
+#28. detsember 2020 kuni 31. jaanuar 2021 märkimisväärselt häiritud.
+#NB! Töötukassa andmetel on ka ettevõtteid väljaspool Harjumaad ja Ida-Virumaad, mis on võimalik, kui töötaja töökoht oli siiski neis maakondades
+andmed_tk21_hi <- read_excel("Andmed/Meetmed/TK/tootasu_toetuse_asutuste_nimekiri_06_12_2021.xlsx", 
+                             sheet = "Asutuste koondvaade", skip = 1) %>% 
+  select(registrikood = `Asutuse registrikood`, tk21_hi_saajate_arv = `Saajate arv`,
+         tk21_hi_summa = `Määratud summa`)
+save(andmed_tk21_hi, file="Andmed/R_andmed/andmed_tk21_hi.RData")

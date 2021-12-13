@@ -1,23 +1,22 @@
 #KMK grupi andmed
-
-#Kuidas tulevikus teha? 
+#NB! Ridadel 33-35 tuleb käsitsi muuta lõppkvartalit, mis EMTA andmed on olemas
 
 #paketid
-library(tidyverse)
-library(readxl)
-library(lubridate)
-library(zoo)
+require(tidyverse)
+require(readxl)
+require(lubridate)
+require(zoo)
 
 #andmed 
-kmk_grupp <- read_excel("Andmed/EMTAKMKR/KMKgrupp_30122020.xlsx")
-load("Andmed/R_andmed/df_koik.RData")
-
+#vanad andmed: KMKgrupp_3012202.xlsx, KMKgrupp_31032021.xlsx, KMKgrupp_29062021.xlsx
+#Uued andmed sisaldavad alati ka ajalugu (ALGUS ja LOPP tunnused, mistõttu võib võtta kõige viimase faili ja üle kirjutada)
+kmk_grupp <- read_excel("Andmed/EMTAKMKR/KMKgrupp_30112021.xlsx")
 
 kmk_grupp <- kmk_grupp %>% 
   mutate(ALGUS = as.Date(ALGUS, format = "%d.%m.%Y"),
          LOPP = as.Date(LOPP, format = "%d.%m.%Y")) %>% 
   #viskame välja read, mis lõppevad enne EMTA kvartaalseid andmeid (01.12.2016) %>% 
-  filter(is.na(LOPP) | LOPP >= as.Date("2016-12-01")) %>%  #1562st sai 787 rida
+  filter(is.na(LOPP) | LOPP >= as.Date("2016-12-01")) %>%  #1734st sai 959 rida
   arrange(KOOD, LIIGE_KOOD, ALGUS)
 
 #leiame gruppi kuulumise alguse ja lõpu (EMTA kvartalitele vastava) kvartali
@@ -32,7 +31,10 @@ kmk_grupp2 <- kmk_grupp %>%
               month(ALGUS) == 12 ~ 1
     ))),
     lopp_kv = as.yearqtr(ifelse(is.na(LOPP),
-                                "2020-4", 
+    #SIIN TULEB MUUTA LÕPPKVARTALIT!!!!!!!
+                                "2021-4", #EMTA viimane kvartal + 1, sest EMTA kvartalid on nihkes. 
+    #Võib juba esineda gruppe, mis EMTA andmete puhul on järgmises kvartalis. 
+    #Nt grupp algas 01.03, aga EMTA andmed lõppevad 28.02.
                                 paste0(
       ifelse(month(LOPP) == 12, year(LOPP) +1, year(LOPP)), #aasta
       "-",
@@ -61,7 +63,7 @@ kmk_grupp3 <- do.call(rbind,
           data.frame(registrikood=kmk_grupp3[x,"registrikood"], 
                      liider_kood = kmk_grupp3[x, "liider_kood"],
                      aeg=seq(as.yearqtr(kmk_grupp3[x,"algus_kv"]), 
-                             as.yearqtr(kmk_grupp3[x,"lopp_kv"]) , by=0.25) ) } ))
+                             as.yearqtr(kmk_grupp3[x,"lopp_kv"]), by=0.25) ) } ))
 
 #viskame välja kvartalid, mis olid enne EMTA andmeid
 #kuna sama ema-tütar kooslust oli mitmel real, 
@@ -97,14 +99,15 @@ kmk_grupp4 <- kmk_grupp3 %>%
 
 save(kmk_grupp4, file = "Andmed/R_andmed/kmk_grupp.RData")
 
-#Meetmete analüüs
-kmk_grupp_uni <- kmk_grupp4 %>% pull(registrikood) %>% unique()
-kmk_abi <- kmk_grupp4 %>% select(-aeg, -kaal) %>% unique()
-
-kmk_grupp_meetmed <- df_koik %>% 
-  select(registrikood, meede_EAS, meede_TK, meede_kredex, meede_MES) %>% 
-  unique() %>% 
-  right_join(kmk_abi) %>% 
-  mutate(liider = ifelse(registrikood == liider_kood, 1, 0)) %>% 
-  filter(!(is.na(meede_EAS) & is.na(meede_TK) & is.na(meede_kredex) & is.na(meede_MES)))
-         
+# #Meetmete analüüs
+# load("Andmed/R_andmed/df_koik.RData")
+# kmk_grupp_uni <- kmk_grupp4 %>% pull(registrikood) %>% unique()
+# kmk_abi <- kmk_grupp4 %>% select(-aeg, -kaal) %>% unique()
+# 
+# kmk_grupp_meetmed <- df_koik %>% 
+#   select(registrikood, meede_EAS, meede_TK, meede_kredex, meede_MES) %>% 
+#   unique() %>% 
+#   right_join(kmk_abi) %>% 
+#   mutate(liider = ifelse(registrikood == liider_kood, 1, 0)) %>% 
+#   filter(!(is.na(meede_EAS) & is.na(meede_TK) & is.na(meede_kredex) & is.na(meede_MES)))
+#          
