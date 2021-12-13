@@ -37,7 +37,6 @@ abi_emta <- andmed_emta_sidumiseks %>%
             max_aastakv = max(aastakv))
 
 #Kõikidele ettevõtetele kõik kvartalid ja min-max järgi filtreerimine ja andmete täitmine
-#Äriühingute korral lisab andmestikku (seis kuni 2020 III kvartal) 52469 rida (1643907st saab 1696376)
 andmed_emta_sidumiseks <- andmed_emta_sidumiseks %>% 
   complete(registrikood, nesting(aasta, kvartal), fill = list(rmaksud = 0, toomaksud = 0, kaive = 0, tootajad = 0)) %>% 
   mutate(aastakv = as.numeric(paste0(aasta, kvartal))) %>% 

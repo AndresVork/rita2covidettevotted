@@ -1,8 +1,8 @@
 #Meetmete lisamine
 
 #Paketid
-library(tidyverse)
-library(zoo)
+require(tidyverse)
+require(zoo)
 
 #Võtame aluseks andmete_koondamine_ja_uuedtunnused.R failist saadud andmed df_anal
 load(file = "./Andmed/R_andmed/df_anal.RData")
@@ -10,7 +10,9 @@ load(file = "./Andmed/R_andmed/df_anal.RData")
 load("./Andmed/R_andmed/andmed_eas.RData") 
 load("./Andmed/R_andmed/andmed_mes.RData")
 load("./Andmed/R_andmed/andmed_emta.RData") #MES andmete registrikoodi jaoks
-load("./Andmed/R_andmed/andmed_tkkum.RData")
+load("./Andmed/R_andmed/andmed_tkkum.RData") #Töötukassa 2020
+load("./Andmed/R_andmed/andmed_tk21.RData") #Töötukassa 2021
+load("./Andmed/R_andmed/andmed_tk21_hi.RData") #Harju ja Ida-Viru eri
 load("./Andmed/R_andmed/andmed_kredex.RData")
 
 #Lisame MES andmetele registrikoodi nime kaudu kui registrikood on puudu
@@ -39,7 +41,7 @@ andmed_mes <- andmed_mes %>%
   filter(!is.na(registrikood)) %>% 
   rbind(andmed_mes1) %>% 
   rbind(andmed_mes2) %>% 
-  select(registrikood) %>% 
+  #select(registrikood) %>% 
   filter(!is.na(registrikood)) %>% 
   unique()
   
@@ -48,14 +50,24 @@ andmed_mes <- andmed_mes %>%
 df_koik <- df_anal %>% 
   left_join(andmed_eas %>% mutate(meede_EAS = 1) %>% select(registrikood, meede_EAS) %>% unique(),
             by = "registrikood") %>%
-  left_join(andmed_tkkum %>% mutate(meede_TK = 1, registrikood = as.character(registrikood)) %>% select(registrikood, meede_TK),
+  left_join(andmed_tkkum %>% mutate(meede_TK20 = 1, registrikood = as.character(registrikood)) %>% select(registrikood, meede_TK20),
             by = "registrikood") %>%
-  left_join(andmed_kredex %>% mutate(meede_kredex = 1, registrikood = as.character(registrikood)) %>% select(registrikood, meede_kredex) %>% unique(),
+  left_join(andmed_kredex %>% mutate(meede_kredex_kaendus = ifelse(!is.na(kredex_kaendussumma),1,0), 
+                                     meede_kredex_laen = ifelse(is.na(kredex_kaendussumma),1,0),
+                                     registrikood = as.character(registrikood)) %>% 
+              select(registrikood, meede_kredex_kaendus, meede_kredex_laen) %>% unique(),
             by = "registrikood") %>% 
-  left_join(andmed_mes %>% mutate(meede_MES = 1) %>% select(registrikood, meede_MES),
+  left_join(andmed_mes %>% mutate(meede_MES_kaendus = ifelse(!is.na(mes_kaendussumma),1, 0),
+                                  meede_MES_laen = ifelse(is.na(mes_kaendussumma),1, 0),) %>% 
+              select(registrikood, meede_MES_kaendus,meede_MES_laen),
           by = "registrikood") %>% 
+  left_join(andmed_tk21 %>% mutate(meede_TK21 = 1, registrikood = as.character(registrikood)) %>% select(registrikood, meede_TK21),
+            by = "registrikood") %>%
+  left_join(andmed_tk21_hi %>% mutate(meede_TK21_hi = 1, registrikood = as.character(registrikood)) %>% select(registrikood, meede_TK21_hi),
+            by = "registrikood") %>%
   #kui ei saanud meedet, siis on väärtus 0
-  replace_na(list(meede_EAS = 0, meede_TK = 0, meede_kredex = 0, meede_MES = 0)) %>% 
+  replace_na(list(meede_EAS = 0, meede_TK20 = 0, meede_kredex_kaendus = 0, meede_kredex_laen = 0, meede_MES_kaendus = 0, meede_MES_laen = 0,
+                  meede_TK21 = 0, meede_TK21_hi = 0)) %>% 
   unique()
 
 save(df_koik, file = "./Andmed/R_andmed/df_koik.RData")
