@@ -76,17 +76,17 @@ theme_ev <- function(){
       
       axis.title = element_text(             #axis titles
         family = font,            
-        size = 12,
+        size = 13,
         colour = "#53565A"),              
       
       axis.text = element_text(              #axis text
         family = font,            
-        size = 11,
+        size = 12,
         colour = "#75787B"),
       
       legend.text = element_text(              #legend text
         family = font,            
-        size = 11,
+        size = 12,
         colour = "#53565A")
     )
 }
@@ -128,7 +128,41 @@ line_graph <- function(data, ..., group_labels = NULL, title = NULL,
   }
   ggplot(data, aes(...)) + 
     geom_line(size = 1.2) +
+    geom_point() + 
     scale_colour_manual(name = "", values = varv, labels = group_labels) +
     labs(title = title, x = xlab, y = ylab) +
     theme_ev()
+}
+
+line_graph_yksik <- function(data, ..., valitud, sarnased = FALSE, title = NULL, 
+                       xlab = "", ylab = NULL) {
+  validate(need(nrow(data) > 0, "Pole andmeid"))
+  if(sarnased){
+    ggplot(data %>% filter(grupp != c(valitud, "Sarnaste ettevõtete keskmine")), 
+           aes(...)) + 
+      geom_line(aes(color = "#D9D9D6"), size = 1.2) +
+      geom_point(aes(color = "#D9D9D6")) +
+      geom_line(data = data %>% filter(grupp == "Sarnaste ettevõtete keskmine"),
+                aes(colour = "#97999B"), size = 1.2) +
+      geom_point(data = data %>% filter(grupp == "Sarnaste ettevõtete keskmine"), 
+                 aes(colour = "#97999B")) +
+      geom_line(data = data %>% filter(grupp == valitud),
+                aes(colour = "#0072CE"), size = 1.2) +
+      geom_point(data = data %>% filter(grupp == valitud), 
+                 aes(colour = "#0072CE")) +
+      scale_color_identity(name = "",
+                           breaks = c("#0072CE", "#97999B", "#D9D9D6"),
+                           labels = c(valitud, "Sarnaste ettevõtete keskmine", "Sarnane ettevõte"),
+                           guide = "legend") +
+      labs(title = title, x = xlab, y = ylab) +
+      theme_ev()
+  } else {
+    ggplot(data, aes(..., color = valitud)) + 
+      geom_line(size = 1.2) +
+      geom_point() + 
+      scale_colour_manual(name = "", values = "#0072CE", labels = valitud) +
+      labs(title = title, x = xlab, y = ylab) +
+      theme_ev()
+  }
+  
 }

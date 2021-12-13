@@ -125,8 +125,12 @@ function(input, output, session) {
     #Arvutame 2019 aasta näitajad ja filtreerime
     temp_abi <- df_koik %>% 
       filter(aasta == 2019,
-             !!sym(input$inputtase2) == input$inputsektor2, 
              liider_kood != 1)
+    
+    if (input$inputtase2 != "") {
+      temp_abi <- temp_abi %>% 
+        filter(!!sym(input$inputtase2) == input$inputsektor2)
+    }
 
     #kui on maakond valitud
     if (input$inputmaakond2 != "") {
@@ -144,12 +148,14 @@ function(input, output, session) {
              aasta_tootajad >= input$inputtootajad2[1],
              aasta_tootajad <= input$inputtootajad2[2]) %>% 
       pull(registrikood)
-    
+    abi <<- input$inputmeede
+    #print(head(df_koik[[input$inputmeede]]))
     temp_df <- df_koik %>%
       filter(registrikood %in% temp_abi, 
              liider_kood != 1) %>% 
-      #tunnus meede saab valitud meete väärtused
-      mutate(meede = ifelse(.data[[input$inputmeede]] == 1, 1, 0)) %>% 
+      #tunnus meede saab valitud meetme(te) väärtused
+      #mutate(meede = ifelse(.data[[input$inputmeede]] == 1, 1, 0)) %>% #multi select on FALSE
+      mutate(meede = ifelse(rowSums(.[abi], na.rm = TRUE) == 0, 0, 1)) %>% 
       select(registrikood, aeg, kaive, tootajad, meede) %>% 
       #jagame meetme saajateks ja mittesaajateks
       group_by(meede) %>% 
@@ -159,7 +165,6 @@ function(input, output, session) {
       summarise(kaive = mean(kaive),
                 tootajad = mean(tootajad)) %>% 
       ungroup() 
-
     return(temp_df)
   })
 
@@ -173,6 +178,18 @@ function(input, output, session) {
     mittesaajad <- meetmeandmed() %>% filter(meede == 0) %>% pull(ettevotteid) %>% unique()
     if (length(mittesaajad) == 0 ) mittesaajad <- 0
     valueBox(value = mittesaajad, subtitle = "mittesaajat", icon = icon("building"))
+  })
+  
+  output$kaibe_osakaal <- renderValueBox({
+    andmed <- meetmeandmed() %>% filter(floor(as.numeric(aeg)) == 2020) %>% ungroup() %>%  group_by(meede) %>% summarise(kaive = sum(ettevotteid*kaive)) %>% distinct()
+    osakaal <- ifelse(identical(andmed$kaive[andmed$meede == 1], numeric(0)), 0, round(andmed$kaive[andmed$meede == 1]/sum(andmed$kaive)*100,1))
+    valueBox(value = paste(osakaal, "%"), subtitle = "saajate käive kogukäibest (2020.aasta)", icon = icon("chart-pie"))
+  })
+  
+  output$tootajate_osakaal <- renderValueBox({
+    andmed <- meetmeandmed() %>% filter(floor(as.numeric(aeg)) == 2020) %>% ungroup() %>% group_by(meede) %>% summarise(tootajad = mean(ettevotteid*tootajad)) %>% distinct()
+    osakaal <- ifelse(identical(andmed$tootajad[andmed$meede == 1], numeric(0)), 0, round(andmed$tootajad[andmed$meede == 1]/sum(andmed$tootajad)*100,1))
+    valueBox(value = paste(osakaal, "%"), subtitle = "saajate töötajad kõikidest töötajatest (2020.aasta)", icon = icon("chart-pie"))
   })
   
   output$kaivejoonis <- renderPlot({
@@ -359,8 +376,13 @@ function(input, output, session) {
                  "<b>Vald/linn</b>", viimane$valdlinn, "<br/>",
                  "<b>Käibemaksukohuslane</b>", viimane$KMK, "<br/>")
     #saadud meetmed
-    if (viimane$meede_EAS + viimane$meede_TK + viimane$meede_kredex + viimane$meede_MES > 0) {
-      meetmed <- c("EAS", "TK", "Kredex", "MES")[c(viimane$meede_EAS == 1, viimane$meede_TK == 1, viimane$meede_kredex == 1,viimane$meede_MES == 1)]
+    if (viimane$meede_EAS + viimane$meede_TK20 + viimane$meede_TK21 + viimane$meede_TK21_hi + viimane$meede_kredex_kaendus + 
+        viimane$meede_kredex_laen + viimane$meede_MES_kaendus + viimane$meede_MES_laen > 0) {
+      meetmed <- c("EAS", "Töötukassa 2020", "Kredex laen", "Kredex käendus", "MES laen", 
+                   "MES käendus", "Töötukassa 2021", "Töötukassa 2021 Harju/Ida-Viru")[c(viimane$meede_EAS == 1, viimane$meede_TK20 == 1, 
+                                                                                         viimane$meede_kredex_laen == 1, viimane$meede_kredex_kaendus == 1,
+                                                                                         viimane$meede_MES_laen == 1, viimane$meede_MES_kaendus == 1,
+                                                                                         viimane$meede_TK21 == 1, viimane$meede_TK21_hi == 1)]
       str <- paste(str, paste("Ettevõte sai", paste(meetmed, collapse = ", "), "meedet/meetmeid.<br/>"), sep = '<br/>')
     } else {
       str <- paste(str, "Ettevõte ei saanud meetmeid.<br/>", sep = '<br/>')
@@ -368,7 +390,7 @@ function(input, output, session) {
     #kas kuulub KMK gruppi
     if (viimane$liider_kood == 0) {
       str <- paste(str, "Ettevõte ei kuulu KMK gruppi.", sep = '<br/>')
-    } else if  (viimane$liider_kood == 1) { #on KMK grupi summeeritud ettevõte
+    } else if  (viimane$liider_kood == 1) { #on KMK grupi summeeritud ettevõtedf_
       ettevotted <- df_koik %>% 
         filter(aeg == viimane$aeg, liider_kood == viimane$registrikood) %>% 
         pull(nimi)
@@ -402,9 +424,13 @@ function(input, output, session) {
     valik <- ifelse(2019 %in% aastad, 2019, tail(aastad,1))
     
     #renderdame ainult saadud meetmete linnukesed
-    meetmed <- c("EAS", "TK", "Kredex", "MES")[c(viimane$meede_EAS == 1, viimane$meede_TK == 1, viimane$meede_kredex == 1,viimane$meede_MES == 1)]
+    meetmed <- c("EAS", "Töötukassa 2020", "Kredex laen", "Kredex käendus", "MES laen", 
+                 "MES käendus", "Töötukassa 2021", "Töötukassa 2021 Harju/Ida-Viru")[c(viimane$meede_EAS == 1, viimane$meede_TK20 == 1, 
+                                  viimane$meede_kredex_laen == 1, viimane$meede_kredex_kaendus == 1,
+                                  viimane$meede_MES_laen == 1, viimane$meede_MES_kaendus == 1,
+                                  viimane$meede_TK21 == 1, viimane$meede_TK21_hi == 1)]
     w <- lapply(meetmed, function(i) {
-      checkboxInput(paste0("input", i), label = paste("Ei saanud", i, "meedet"), value = NULL)
+      checkboxInput(paste0("input", gsub(" |/|-", "", i)), label = paste("Ei saanud", i, "meedet"), value = NULL)
     })
     
     #sarnaste ettevõtete nõuete valikud
@@ -417,11 +443,13 @@ function(input, output, session) {
       checkboxInput("inputkaive_sama", label = "Sarnane käive", value = TRUE),
       conditionalPanel(condition = "input.inputkaive_sama",
                        numericInputIcon("inputdkaive", NULL, value = 20, min = 0,
-                                        max = 100, icon = list(plusmiinus, icon("percent")))),
+                                        max = 100, step = 10, 
+                                        icon = list(plusmiinus, icon("percent")))),
       checkboxInput("inputtootajad_sama", label = "Sarnane töötajate arv", value = TRUE),
       conditionalPanel(condition = "input.inputtootajad_sama",
                        numericInputIcon("inputdtootajad", NULL, value = 20, min = 0, 
-                                        max = 100, icon = list(plusmiinus, icon("percent")))),
+                                        max = 100, step = 10, 
+                                        icon = list(plusmiinus, icon("percent")))),
       conditionalPanel(condition = "input.inputkaive_sama || input.inputtootajad_sama",
                        selectInput("inputbaasaasta", "Vali võrreldav aasta", aastad, selected = valik)
       ),
@@ -448,7 +476,9 @@ function(input, output, session) {
       andmed_temp <- df_koik %>% 
         filter(registrikood != mina_koond$registrikood, 
                liider_kood %in% c(0,1)) %>% #sarnaste seas on KMK grupid koos või ettevõtted, kes ei kuulu KMK gruppi
-        select(registrikood, nimi, maakond, emtaktahttekst, emtak2tekst, meede_EAS, meede_kredex, meede_MES, meede_TK) %>% 
+        select(registrikood, nimi, maakond, emtaktahttekst, emtak2tekst, meede_EAS, 
+               meede_kredex_kaendus, meede_kredex_laen, meede_MES_kaendus, 
+               meede_MES_laen, meede_TK20, meede_TK21, meede_TK21_hi) %>% 
         group_by(registrikood) %>% 
         slice(n()) %>% #viimane rida iga ettevõtte kohta
         ungroup()
@@ -500,14 +530,26 @@ function(input, output, session) {
       #läheb if sisse, kui selle linnuke on tehtud
       if (input$inputEAS)  andmed_temp <- andmed_temp %>% filter(meede_EAS != 1)
     }
-    if ("inputKredex"  %in% names(input)) {
-      if (input$inputKredex)  andmed_temp <- andmed_temp %>% filter(meede_kredex != 1)
+    if ("inputKredexkäendus"  %in% names(input)) {
+      if (input$inputKredexkäendus)  andmed_temp <- andmed_temp %>% filter(meede_kredex_kaendus != 1)
     }
-    if ("inputMES"  %in% names(input)) {
-      if (input$inputMES)  andmed_temp <- andmed_temp %>% filter(meede_MES != 1)
+    if ("inputKredexlaen"  %in% names(input)) {
+      if (input$inputKredexlaen)  andmed_temp <- andmed_temp %>% filter(meede_kredex_laen != 1)
+    }
+    if ("inputMESkäendus"  %in% names(input)) {
+      if (input$inputMESkäendus)  andmed_temp <- andmed_temp %>% filter(meede_MES_kaendus != 1)
     } 
-    if ("inputTK" %in% names(input)) {
-      if (input$inputTK)  andmed_temp <- andmed_temp %>% filter(meede_TK != 1)
+    if ("inputMESlaen"  %in% names(input)) {
+      if (input$inputMESlaen)  andmed_temp <- andmed_temp %>% filter(meede_MES_laen != 1)
+    } 
+    if ("inputTöötukassa2020" %in% names(input)) {
+      if (input$inputTöötukassa2020)  andmed_temp <- andmed_temp %>% filter(meede_TK20 != 1)
+    }
+    if ("inputTöötukassa2021" %in% names(input)) {
+      if (input$inputTöötukassa2021)  andmed_temp <- andmed_temp %>% filter(meede_TK21 != 1)
+    }
+    if ("inputTöötukassa2021HarjuIdaViru" %in% names(input)) {
+      if (input$inputTöötukassa2021HarjuIdaViru)  andmed_temp <- andmed_temp %>% filter(meede_TK21_hi != 1)
     }
     
     andmed_temp <- andmed_temp %>% select(nimi, registrikood) %>% arrange(nimi)
@@ -525,16 +567,18 @@ function(input, output, session) {
     #kui on sarnased
     if (nrow(sarnased_reg()) != 0) {
         sarnased <- df_koik %>%
-          select(registrikood, aeg, kaive, tootajad) %>%
-          filter(registrikood %in% sarnased_reg()$registrikood) %>% #mis teha KMK gruppide puhul
+          select(registrikood, aeg, kaive, tootajad, toomaksud_tootajakohta, kaive_tootajakohta) %>%
+          filter(registrikood %in% sarnased_reg()$registrikood) %>% 
+        rename(grupp = registrikood)
+        sarnased_kokku <- sarnased %>%
           group_by(aeg) %>%
-          summarise_at(vars(kaive:tootajad), mean, na.rm = TRUE) %>%
-          mutate(grupp = "Sarnased ettevõtted")
+          summarise_at(vars(kaive:kaive_tootajakohta), mean, na.rm = TRUE) %>%
+          mutate(grupp = "Sarnaste ettevõtete keskmine")
         mina <- ettevotte_andmed() %>%
           mutate(grupp = last(nimi)) %>%
           select(names(sarnased))
-        andmed <- rbind(sarnased, mina) %>%
-          mutate(grupp = factor(grupp, levels = c("Sarnased ettevõtted", mina$grupp[1])))
+        andmed <- rbind(sarnased_kokku, mina, sarnased) %>% #, sarnased
+          mutate(grupp = factor(grupp, levels = c("Sarnaste ettevõtete keskmine", mina$grupp[1], unique(sarnased$grupp))))
     } else {
       #kui sarnased_reg on tühi tabel (sarnaseid ei ole vaja leida või ei leitud)
       andmed <- ettevotte_andmed() %>%
@@ -542,20 +586,32 @@ function(input, output, session) {
     }
     return(andmed)
   })
-
+  
   output$kaivejoonis3 <- renderPlot({
     aste <- kymne_aste(jooniste_andmed()$kaive)
-    line_graph(data = jooniste_andmed(), x = aeg, y = kaive/aste$div, group = grupp, 
-               color = factor(grupp),
-               group_labels = unique(jooniste_andmed()$grupp),  
-               title = "Ettevõtte käive kvartalis", ylab = paste("€", aste$label, sep = " "))
+    line_graph_yksik(data = jooniste_andmed(), x = aeg, y = kaive/aste$div, group = grupp,
+                     valitud = last(ettevotte_andmed()$nimi), sarnased = is.factor(jooniste_andmed()$grupp),
+                     title = "Ettevõtte käive kvartalis", ylab = paste("€", aste$label, sep = " "))
   })
-  
+
   output$tootajajoonis3 <- renderPlot({
-    line_graph(data = jooniste_andmed(), x = aeg, y = tootajad, group = grupp, 
-               color = factor(grupp),
-               group_labels = unique(jooniste_andmed()$grupp), 
-               title = "Ettevõtte töötajate arv kvartalis", ylab = "")
+    line_graph_yksik(data = jooniste_andmed(), x = aeg, y = tootajad, group = grupp,
+                     valitud = last(ettevotte_andmed()$nimi), sarnased = is.factor(jooniste_andmed()$grupp),
+                     title = "Ettevõtte töötajate arv kvartalis", ylab = "")
+  })
+
+  output$kaivetootajajoonis <- renderPlot({
+    aste <- kymne_aste(jooniste_andmed()$kaive_tootajakohta)
+    line_graph_yksik(data = jooniste_andmed(), x = aeg, y = kaive_tootajakohta/aste$div, group = grupp,
+                     valitud = last(ettevotte_andmed()$nimi), sarnased = is.factor(jooniste_andmed()$grupp),
+                     title = "Ettevõtte käive töötaja kohta kvartalis", ylab = paste("€", aste$label, sep = " "))
+  })
+
+  output$toomaksudtootajajoonis <- renderPlot({
+    aste <- kymne_aste(jooniste_andmed()$toomaksud_tootajakohta)
+    line_graph_yksik(data = jooniste_andmed(), x = aeg, y = toomaksud_tootajakohta/aste$div, group = grupp,
+                     valitud = last(ettevotte_andmed()$nimi), sarnased = is.factor(jooniste_andmed()$grupp),
+                     title = "Ettevõtte tööjõumaksud ja maksed töötaja kohta kvartalis", ylab = paste("€", aste$label, sep = " "))
   })
   
   output$nimekiri2 <- renderUI({
