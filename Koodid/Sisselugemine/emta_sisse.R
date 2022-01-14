@@ -330,6 +330,22 @@ str(lisa_andmed)
 andmed <- andmed %>% 
   rbind(lisa_andmed)
 
+lisa_andmed <- read_excel("Andmed/EMTA/tasutud_maksud_2021_iv_kvartal.xlsx") %>% 
+  mutate(aasta = 2021, 
+         kvartal = 4)
+names(lisa_andmed) <- tolower(names(lisa_andmed))
+names(lisa_andmed)
+lisa_andmed <- lisa_andmed %>% 
+  rename(KMK = `registreeritud käibemaksukohustuslaste registrisse`,
+         EMTAK = `emtak tegevusvaldkond, mis on emtaki struktuuris tähistatud tähtkoodiga`,
+         rmaksud = `riiklikud maksud`,
+         toomaksud = `tööjõumaksud ja maksed`,
+         tootajad = tootajaid
+  )  %>% select(names(andmed))
+str(lisa_andmed)
+andmed <- andmed %>% 
+  rbind(lisa_andmed)
+
 
 #Õ täht on varasemates Exceli andmefailides teistsuguse kujuga. Kasutan gsub ja pattern kombinatsiooni.
 #Vaata: table(andmed$EMTAK, andmed$aasta)
